@@ -42,8 +42,6 @@ class StateManager(object):
                 error = True
 
         if self.get_controller_from_client_id(client_id) is None:
-            logger.info("new sid", client_id)
-
             gdb_args = (
                 deepcopy(self.config["initial_binary_and_args"])
                 + deepcopy(self.config["gdb_args"])

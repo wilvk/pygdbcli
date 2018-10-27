@@ -23,10 +23,10 @@ import socket
 import traceback
 
 USING_WINDOWS = os.name == "nt"
-DEFAULT_HOST = "127.0.0.1"
-DEFAULT_PORT = 5000
 IS_A_TTY = sys.stdout.isatty()
 DEFAULT_GDB_EXECUTABLE = "gdb"
+GDB_PATH = '/usr/local/bin/gdb'
+GDB_ARGS = ''
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -53,7 +53,7 @@ def verify_gdb_exists(gdb_path):
         else:
             print('try "sudo apt-get install gdb" for Linux or "brew install gdb"')
         sys.exit(1)
-    elif "lldb" in gdb_path.lower() and "lldb-mi" not in app.config["gdb_path"].lower():
+    elif "lldb" in gdb_path.lower() and "lldb-mi" not in GDB_PATH.lower():
         pygdbmi.printcolor.print_red(
             'gdbgui cannot use the standard lldb executable. You must use an executable with "lldb-mi" in its name.'
         )
@@ -202,9 +202,9 @@ def _shutdown():
 def main():
     """Entry point from command line"""
 
-    verify_gdb_exists(app.config["gdb_path"])
+    verify_gdb_exists(GDB_PATH)
 
-    if warn_startup_with_shell_off(platform.platform().lower(), args.gdb_args):
+    if warn_startup_with_shell_off(platform.platform().lower(), GDB_ARGS):
         logger.warning(
             "You may need to set startup-with-shell off when running on a mac. i.e.\n"
             "  gdbgui --gdb-args='--init-eval-command=\"set startup-with-shell off\"'\n"
