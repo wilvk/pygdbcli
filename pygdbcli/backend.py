@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 The entrypoint to accessing gdb/gdbserver
@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 handler = logging.StreamHandler()
-handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 # create dictionary of signal names
@@ -202,56 +201,8 @@ def _shutdown():
 
 def main():
     """Entry point from command line"""
-    parser = get_parser()
-    args = parser.parse_args()
-
-    if args.debug:
-        logger.setLevel(logging.NOTSET)
-
-    initialize_preferences()
-
-    if args.version:
-        print(__version__)
-        return
-
-    cmd = args.cmd or args.args
-
-    if args.no_browser and args.browser:
-        print("Cannot specify no-browser and browser. Must specify one or the other.")
-        exit(1)
-
-    app.config["initial_binary_and_args"] = cmd
-    app.config["gdb_args"] = shlex.split(args.gdb_args)
-    app.config["rr"] = args.rr
-    app.config["gdb_path"] = args.gdb
-    app.config["show_gdbgui_upgrades"] = not args.hide_gdbgui_upgrades
-    app.config["gdbgui_auth_user_credentials"] = get_gdbgui_auth_user_credentials(
-        args.auth_file, args.user, args.password
-    )
-    app.config["project_home"] = args.project
-    if args.remap_sources:
-        try:
-            app.config["remap_sources"] = json.loads(args.remap_sources)
-        except json.decoder.JSONDecodeError as e:
-            print(
-                "The '--remap-sources' argument must be valid JSON. See gdbgui --help."
-            )
-            print(e)
-            exit(1)
-
-    if args.license:
-        print("saving license information")
-        save_license(args.license)
 
     verify_gdb_exists(app.config["gdb_path"])
-    if args.remote:
-        args.host = "0.0.0.0"
-        args.no_browser = True
-        if app.config["gdbgui_auth_user_credentials"] is None:
-            print(
-                "Warning: authentication is recommended when serving on a publicly "
-                "accessible IP address. See gdbgui --help."
-            )
 
     if warn_startup_with_shell_off(platform.platform().lower(), args.gdb_args):
         logger.warning(
@@ -260,18 +211,6 @@ def main():
             "see http://stackoverflow.com/questions/39702871/gdb-kind-of-doesnt-work-on-macos-sierra\n"
             "and https://sourceware.org/gdb/onlinedocs/gdb/Starting.html"
         )
-
-    setup_backend(
-        serve=True,
-        host=args.host,
-        port=int(args.port),
-        debug=bool(args.debug),
-        open_browser=(not args.no_browser),
-        browsername=args.browser,
-        private_key=args.key,
-        certificate=args.cert,
-    )
-
 
 def warn_startup_with_shell_off(platform, gdb_args):
     """return True if user may need to turn shell off
