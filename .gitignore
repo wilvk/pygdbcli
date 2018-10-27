@@ -1,2 +1,4 @@
+pygdbcli.egg-info/
+dist/
 *.swp
 *.pyc

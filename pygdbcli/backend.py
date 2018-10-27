@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-
-"""
-The entrypoint to accessing gdb/gdbserver
-"""
-
 import argparse
 import binascii
 from distutils.spawn import find_executable
