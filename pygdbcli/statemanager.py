@@ -4,10 +4,8 @@ from pygdbmi.gdbcontroller import GdbController
 import logging
 import traceback
 
-
 REQUIRED_GDB_FLAGS = ["--interpreter=mi2"]
 logger = logging.getLogger(__name__)
-
 
 class StateManager(object):
     def __init__(self, config):

@@ -15,6 +15,7 @@ import shlex
 import sys
 import socket
 import traceback
+from statemanager import StateManager  # noqa
 
 USING_WINDOWS = os.name == "nt"
 IS_A_TTY = sys.stdout.isatty()
@@ -27,6 +28,9 @@ logger.setLevel(logging.WARNING)
 
 handler = logging.StreamHandler()
 logger.addHandler(handler)
+
+# TODO: pass app.config in
+_state = StateManager(None)
 
 # create dictionary of signal names
 SIGNAL_NAME_TO_OBJ = {}
@@ -53,6 +57,22 @@ def verify_gdb_exists(gdb_path):
         )
         sys.exit(1)
 
+def client_connected():
+    # see if user wants to connect to existing gdb pid
+    # TODO: fix this properly
+    #desired_gdbpid = int(request.args.get("gdbpid", 0))
+    desired_gdbpid = 0
+
+    # TODO: fix this properly
+    #payload = _state.connect_client(request.sid, desired_gdbpid)
+    payload = _state.connect_client(desired_gdbpid, desired_gdbpid)
+
+    # Make sure there is a reader thread reading. One thread reads all instances.
+    if _state.gdb_reader_thread is None:
+        _state.gdb_reader_thread = socketio.start_background_task(
+            target=read_and_forward_gdb_output
+        )
+
 def run_gdb_command(message):
     """
     Endpoint for a websocket route.
@@ -60,7 +80,9 @@ def run_gdb_command(message):
     Responds only if an error occurs when trying to write the command to
     gdb
     """
-    controller = _state.get_controller_from_client_id(request.sid)
+    # TODO: fix properly
+#    controller = _state.get_controller_from_client_id(request.sid)
+    controller = _state.get_controller_from_client_id(0)
     if controller is not None:
         try:
             # the command (string) or commands (list) to run
@@ -76,7 +98,9 @@ def run_gdb_command(message):
 
 
 def remove_gdb_controller():
-    gdbpid = int(request.form.get("gdbpid"))
+    # TODO: fix this properly
+    #gdbpid = int(request.form.get("gdbpid"))
+    gdbpid = 0
 
     orphaned_client_ids = _state.remove_gdb_controller_by_pid(gdbpid)
     num_removed = len(orphaned_client_ids)
@@ -140,6 +164,7 @@ def read_and_forward_gdb_output():
             _state.remove_gdb_controller(controller)
 
 def send_signal_to_pid():
+    # TODO: fix this
     signal_name = request.form.get("signal_name", "").upper()
     pid_str = str(request.form.get("pid"))
     try:
@@ -205,6 +230,7 @@ def main():
             "see http://stackoverflow.com/questions/39702871/gdb-kind-of-doesnt-work-on-macos-sierra\n"
             "and https://sourceware.org/gdb/onlinedocs/gdb/Starting.html"
         )
+    client_connected()
 
 def warn_startup_with_shell_off(platform, gdb_args):
     """return True if user may need to turn shell off
