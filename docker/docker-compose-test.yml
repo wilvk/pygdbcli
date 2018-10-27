@@ -1,0 +1,31 @@
+version: "3"
+
+services:
+
+  test-client:
+    hostname: test-client
+    depends_on:
+      - test-server
+    build:
+      context: ..
+      dockerfile: ./docker/Dockerfile-client
+    working_dir: /work
+    environment:
+      - "IN_DOCKER=YES"
+    volumes:
+      - ..:/work
+  test-server:
+    hostname: test-server
+    build:
+      context: ..
+      dockerfile: ./docker/Dockerfile-server
+    working_dir: /work
+    security_opt:
+      - seccomp:unconfined
+    expose:
+      - "9999"
+    ports:
+      - "9999:9999"
+    volumes:
+      - ..:/work
+    command: /work/scripts/start-server

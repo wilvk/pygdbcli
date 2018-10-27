@@ -1,0 +1,17 @@
+version: "2"
+
+services:
+
+  dev-server:
+    build:
+      context: ..
+      dockerfile: ./docker/Dockerfile-server
+    working_dir: /work
+    security_opt:
+      - seccomp:unconfined
+    ports:
+      - "9999:9999"
+    volumes:
+      - ..:/work
+    command: /work/scripts/start-server
+
