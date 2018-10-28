@@ -10,8 +10,6 @@ CURDIR = os.path.abspath(os.path.dirname(__file__))
 
 EXCLUDE_FROM_PACKAGES = []
 REQUIRED = [
-    "pygdbmi>=0.8.4.0, <0.9",
-    "python-socketio>=2.0.0",
 ]
 
 README = io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8").read()
@@ -78,9 +76,6 @@ setup(
         "Operating System :: OS Independent",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
