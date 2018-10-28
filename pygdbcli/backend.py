@@ -16,12 +16,14 @@ import sys
 import socket
 import traceback
 from statemanager import StateManager  # noqa
+import time
 
 USING_WINDOWS = os.name == "nt"
 IS_A_TTY = sys.stdout.isatty()
 DEFAULT_GDB_EXECUTABLE = "gdb"
 GDB_PATH = '/usr/local/bin/gdb'
-GDB_ARGS = ''
+GDB_ARGS = []
+RR = ''
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -29,8 +31,14 @@ logger.setLevel(logging.WARNING)
 handler = logging.StreamHandler()
 logger.addHandler(handler)
 
-# TODO: pass app.config in
-_state = StateManager(None)
+app_config = {
+  'gdb_path': GDB_PATH,
+  'gdb_args': GDB_ARGS,
+  'initial_binary_and_args': [],
+  'rr': False
+}
+
+_state = StateManager(app_config)
 
 # create dictionary of signal names
 SIGNAL_NAME_TO_OBJ = {}
@@ -67,12 +75,6 @@ def client_connected():
     #payload = _state.connect_client(request.sid, desired_gdbpid)
     payload = _state.connect_client(desired_gdbpid, desired_gdbpid)
 
-    # Make sure there is a reader thread reading. One thread reads all instances.
-    if _state.gdb_reader_thread is None:
-        _state.gdb_reader_thread = socketio.start_background_task(
-            target=read_and_forward_gdb_output
-        )
-
 def run_gdb_command(message):
     """
     Endpoint for a websocket route.
@@ -92,7 +94,8 @@ def run_gdb_command(message):
         except Exception:
             err = traceback.format_exc()
             logger.error(err)
-            emit("error_running_gdb_command", {"message": err})
+            print("error running gdb command: " + err)
+            #emit("error_running_gdb_command", {"message": err})
     else:
         emit("error_running_gdb_command", {"message": "gdb is not running"})
 
@@ -123,45 +126,34 @@ def read_and_forward_gdb_output():
     """A task that runs on a different thread, and emits websocket messages
     of gdb responses"""
 
-    while True:
-        socketio.sleep(0.05)
-        controllers_to_remove = []
-        controller_items = _state.controller_to_client_ids.items()
-        for controller, client_ids in controller_items:
+    controllers_to_remove = []
+    controller_items = _state.controller_to_client_ids.items()
+    for controller, client_ids in controller_items:
+        try:
             try:
-                try:
-                    response = controller.get_gdb_response(
-                        timeout_sec=0, raise_error_on_timeout=False
-                    )
-                except NoGdbProcessError:
-                    response = None
-                    send_msg_to_clients(
-                        client_ids,
-                        "The underlying gdb process has been killed. This tab will no longer function as expected.",
-                        error=True,
-                    )
-                    controllers_to_remove.append(controller)
+                response = controller.get_gdb_response(
+                    timeout_sec=0, raise_error_on_timeout=False
+                )
+            except NoGdbProcessError:
+                response = None
+                send_msg_to_clients(
+                    client_ids,
+                    "The underlying gdb process has been killed. This tab will no longer function as expected.",
+                    error=True,
+                )
+                controllers_to_remove.append(controller)
 
-                if response:
-                    for client_id in client_ids:
-                        logger.info(
-                            "emiting message to websocket client id " + client_id
-                        )
-                        socketio.emit(
-                            "gdb_response",
-                            response,
-                            namespace="/gdb_listener",
-                            room=client_id,
-                        )
-                else:
-                    # there was no queued response from gdb, not a problem
-                    pass
+            if response:
+                print("response: " + str(response))
+            else:
+                # there was no queued response from gdb, not a problem
+                pass
 
-            except Exception:
-                logger.error(traceback.format_exc())
+        except Exception:
+            logger.error(traceback.format_exc())
 
-        for controller in controllers_to_remove:
-            _state.remove_gdb_controller(controller)
+    for controller in controllers_to_remove:
+        _state.remove_gdb_controller(controller)
 
 def send_signal_to_pid():
     # TODO: fix this
@@ -214,7 +206,7 @@ def _shutdown():
     if app.debug:
         os.kill(pid, signal.SIGINT)
     else:
-        socketio.stop()
+        sio.stop()
 
     return jsonify({})
 
@@ -231,6 +223,14 @@ def main():
             "and https://sourceware.org/gdb/onlinedocs/gdb/Starting.html"
         )
     client_connected()
+    print("connected")
+    time.sleep(1)
+    print("reading")
+    read_and_forward_gdb_output()
+    print("run list")
+    run_gdb_command({'cmd': "list"})
+    print("reading")
+    read_and_forward_gdb_output()
 
 def warn_startup_with_shell_off(platform, gdb_args):
     """return True if user may need to turn shell off

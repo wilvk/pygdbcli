@@ -10,7 +10,8 @@ CURDIR = os.path.abspath(os.path.dirname(__file__))
 
 EXCLUDE_FROM_PACKAGES = []
 REQUIRED = [
-    "pygdbmi>=0.8.4.0, <0.9",  # parse gdb output
+    "pygdbmi>=0.8.4.0, <0.9",
+    "python-socketio>=2.0.0",
 ]
 
 README = io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8").read()
